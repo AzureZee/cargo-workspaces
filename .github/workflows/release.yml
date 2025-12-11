@@ -1,19 +1,38 @@
-name: release.yml
+name: Release
+
 on:
   push:
     tags:
       - v*.*.* # Match semantic version tags
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v1.2.3)"
+        required: true
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.vars.outputs.tag }}   # 显式声明输出，供下游使用
     steps:
       - uses: actions/checkout@v4
+
+      - name: Determine tag
+        id: vars
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create a GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          tag: ${{ github.ref_name }}
+          tag: ${{ steps.vars.outputs.tag }}
         run: |
           gh release create "$tag" \
               --title="${GITHUB_REPOSITORY#*/} ${tag#v}" \
@@ -25,30 +44,44 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { on: "ubuntu-latest", target: "x86_64-unknown-linux-gnu" }
-          - { on: "macos-latest", target: "aarch64-apple-darwin" }
-          - { on: "windows-latest", target: "x86_64-pc-windows-msvc" }
+          - { os: "ubuntu-latest", target: "x86_64-unknown-linux-gnu" }
+          - { os: "macos-latest", target: "aarch64-apple-darwin" }
+          - { os: "windows-latest", target: "x86_64-pc-windows-msvc" }
 
     name: Upload release artifacts on ${{ matrix.os }}
-    runs-on: ${{ matrix.on }}
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: write
     env:
       CARGO_BUILD_TARGET: ${{ matrix.target }}
+      TAG: ${{ needs.release.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
       - name: Install rust
-        uses: dtolnay/rust-toolchain@1.78.0
+        uses: dtolnay/rust-toolchain@1.88.0
+
       - name: Build release binary
         run: cargo build --release --manifest-path cargo-workspaces/Cargo.toml --bin cargo-workspaces
+
+      - name: Prepare artifact
+        id: artifact
+        run: |
+          file="cargo-workspaces-${CARGO_BUILD_TARGET}-${TAG}"
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            cp cargo-workspaces/target/release/cargo-workspaces.exe "$file.exe"
+            echo "file=$file.exe" >> $GITHUB_OUTPUT
+          else
+            cp cargo-workspaces/target/release/cargo-workspaces "$file"
+            tar -czf "$file.tar.gz" "$file"
+            echo "file=$file.tar.gz" >> $GITHUB_OUTPUT
+          fi
+      
+
       - name: Upload release artifact
         env:
           GH_TOKEN: ${{ github.token }}
-          tag: ${{ github.ref_name }}
+          tag: ${{ env.TAG }}
         run: |
-          file="cargo-workspaces-$CARGO_BUILD_TARGET-$tag"
-          cp cargo-workspaces/target/release/cargo-workspaces "$file"
-          
           gh release upload "$tag" \
-              "$file" \
+              "${{ steps.artifact.outputs.file }}" \
               --clobber
