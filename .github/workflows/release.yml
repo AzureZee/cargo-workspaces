@@ -45,7 +45,6 @@ jobs:
 
   upload_binaries:
     needs: release
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     strategy:
       fail-fast: false
       matrix:
