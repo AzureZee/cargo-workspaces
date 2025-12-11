@@ -1,9 +1,9 @@
-use crate::utils::{cargo, change_versions, info, Error, Result, INTERNAL_ERR};
+use crate::utils::{Error, INTERNAL_ERR, Result, cargo, change_versions, info};
 
 use camino::Utf8PathBuf;
 use cargo_metadata::Metadata;
 use clap::{ArgEnum, Parser};
-use dialoguer::{theme::ColorfulTheme, Input, Select};
+use dialoguer::{Input, Select, theme::ColorfulTheme};
 use dunce::canonicalize;
 use glob::Pattern;
 use oclif::term::TERM_ERR;
@@ -50,6 +50,10 @@ pub struct Create {
     /// The name of the crate
     #[clap(long)]
     name: Option<String>,
+
+    /// Create default members without interaction
+    #[clap(short = 'y', long = "yes")]
+    all_default: bool,
 }
 
 impl Create {
@@ -88,7 +92,11 @@ impl Create {
 
     fn try_run(&self, metadata: Metadata) -> Result {
         self.add_workspace_toml_entry(&metadata)?;
-        self.create_new_workspace_member(&metadata)?;
+        if self.all_default {
+            self.create_default_new_workspace_member(&metadata)?;
+        } else {
+            self.create_new_workspace_member(&metadata)?;
+        }
 
         Ok(())
     }
@@ -107,6 +115,41 @@ impl Create {
         add_workspace_member(metadata, &mut workspace_manifest, &self.path)?;
 
         write(workspace_root, workspace_manifest.to_string())?;
+
+        Ok(())
+    }
+
+    fn create_default_new_workspace_member(&self, metadata: &Metadata) -> Result {
+        let path = metadata.workspace_root.join(&self.path);
+
+        let name = path.file_name().map(|s| s.to_owned()).unwrap_or_default();
+        let args = ["new", path.as_str()];
+
+        let (stdout, stderr) = cargo(&metadata.workspace_root, &args, &[])?;
+
+        if [&stdout, &stderr]
+            .iter()
+            .any(|out| out.contains("two packages"))
+        {
+            return Err(Error::DuplicatePackageName);
+        }
+
+        if !stderr.contains("Created") && !stderr.contains("Creating") {
+            return Err(Error::Create);
+        }
+
+        let manifest = path.join("Cargo.toml");
+        let mut versions = Map::new();
+
+        versions.insert(
+            name.to_owned(),
+            Version::parse("0.0.0").expect(INTERNAL_ERR),
+        );
+
+        write(
+            &manifest,
+            change_versions(read_to_string(&manifest)?, &name, &versions, false)?,
+        )?;
 
         Ok(())
     }
@@ -231,9 +274,9 @@ fn add_workspace_member(
     if let Some(exclude_item) = workspace_table.get("exclude")
         && let Some(pattern) =
             exists_in_glob_list(metadata, exclude_item, &path, "workspace.exclude")?
-        {
-            return Err(Error::InWorkspaceExclude(pattern.into()));
-        }
+    {
+        return Err(Error::InWorkspaceExclude(pattern.into()));
+    }
 
     let members_item = workspace_table
         .entry("members")
