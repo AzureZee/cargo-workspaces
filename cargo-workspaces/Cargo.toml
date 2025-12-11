@@ -1,6 +1,6 @@
 [package]
 name = "cargo-workspaces"
-version = "0.4.2"
+version = "0.4.3"
 edition = "2024"
 description = "Cargo workspace manager"
 repository = "https://github.com/AzureZee/cargo-workspaces"
