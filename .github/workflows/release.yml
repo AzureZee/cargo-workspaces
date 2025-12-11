@@ -73,7 +73,7 @@ jobs:
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             file="cargo-workspaces-${CARGO_BUILD_TARGET}-${TAG}.exe"
             cp "cargo-workspaces/target/${CARGO_BUILD_TARGET}/release/cargo-workspaces.exe" "$file"
-            echo "file=$file.exe" >> $GITHUB_OUTPUT
+            echo "file=$file" >> $GITHUB_OUTPUT
           else
             file="cargo-workspaces-${CARGO_BUILD_TARGET}-${TAG}"
             cp "cargo-workspaces/target/${CARGO_BUILD_TARGET}/release/cargo-workspaces" "$file"
