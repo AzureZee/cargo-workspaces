@@ -223,7 +223,7 @@ impl VersionOpt {
                 *new_version = self.ask_version(cur_version, None)?;
             }
 
-            if let Some(ref new_version) = new_version {
+            if let &mut Some(ref new_version) = new_version {
                 for p in &same_pkgs {
                     new_versions.push((p.name.to_string(), new_version.clone(), p.version.clone()));
                 }
@@ -300,7 +300,7 @@ impl VersionOpt {
             bump.selected()
         } else {
             Select::with_theme(&theme)
-                .with_prompt(&format!(
+                .with_prompt(format!(
                     "Select a new version {}(currently {})",
                     prompt, cur_version
                 ))
@@ -318,7 +318,7 @@ impl VersionOpt {
                 preid.clone()
             } else {
                 Input::with_theme(&theme)
-                    .with_prompt(&format!(
+                    .with_prompt(format!(
                         "Enter a prerelease identifier (default: '{}', yielding {})",
                         custom.0, custom.1
                     ))
