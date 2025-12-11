@@ -1,5 +1,6 @@
-use crate::utils::{info, Error, Result};
+use crate::utils::{Error, Result, git, info, warn};
 
+use camino::Utf8PathBuf;
 use cargo_metadata::MetadataCommand;
 use clap::{ArgEnum, Parser};
 use dunce::canonicalize;
@@ -7,10 +8,7 @@ use glob::glob;
 use toml_edit::{Array, Document, Formatted, Item, Table, Value};
 
 use std::{
-    collections::HashSet,
-    fs::{read_to_string, write},
-    io::ErrorKind,
-    path::PathBuf,
+    collections::HashSet, env, fs::{self, read_to_string, write}, io::ErrorKind, path::PathBuf
 };
 
 #[derive(Debug, Clone, Copy, ArgEnum)]
@@ -41,16 +39,16 @@ pub struct Init {
     pub path: PathBuf,
 
     /// Workspace feature resolver version
-    #[clap(long, arg_enum)]
+    /// [default: 3]
+    #[clap(short, long, arg_enum)]
     pub resolver: Option<Resolver>,
 }
 
 impl Init {
     pub fn run(&self) -> Result {
+        // Create directory if it doesn't exist
         if !self.path.is_dir() {
-            return Err(Error::WorkspaceRootNotDir(
-                self.path.to_string_lossy().to_string(),
-            ));
+            self.new_ws_repo()?
         }
 
         let cargo_toml = self.path.join("Cargo.toml");
@@ -132,7 +130,7 @@ impl Init {
         }
 
         // workspace resolver
-        if let Some(resolver) = self.resolver {
+        if let Some(resolver) = self.resolver.or(Some(Resolver::V3)) {
             workspace.entry("resolver").or_insert_with(|| {
                 Item::Value(Value::String(Formatted::new(resolver.name().to_owned())))
             });
@@ -142,5 +140,39 @@ impl Init {
 
         info!("initialized", self.path.display());
         Ok(())
+    }
+
+    fn new_ws_repo(&self) -> Result {
+        let current_dir = match env::current_dir() {
+            Ok(dir) => dir,
+            Err(get_current_dir_err) => return Err(Error::Io(get_current_dir_err)),
+        };
+
+        // Create absolute path by joining current directory with the provided path
+        let new_dir = current_dir.join(&self.path);
+
+        // Create directory if it doesn't exist
+        if let Err(create_dir_err) = fs::create_dir_all(&new_dir) {
+            return Err(Error::Io(create_dir_err));
+        }
+
+        // Run git init command
+        let new_dir_utf8 = Utf8PathBuf::from_path_buf(new_dir.clone())
+            .unwrap_or_else(|_| panic!("{} is not valid UTF-8.", &new_dir.display()));
+
+        let (exit_status, ..) = git(&new_dir_utf8, &["init"])?;
+        if !exit_status.success() {
+            warn!("git repository init failed ", &new_dir.display());
+        }
+
+        // Create .gitignore file with content "/target"
+        let gitignore_path = new_dir.join(".gitignore");
+
+        Ok(if fs::write(&gitignore_path, "**/target").is_err() {
+            warn!(
+                "create or write .gitignore failed ",
+                &gitignore_path.display()
+            );
+        })
     }
 }

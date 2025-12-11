@@ -1,9 +1,8 @@
 mod changed;
-mod create;
+mod new;
 mod exec;
 mod init;
 mod list;
-mod new;
 mod plan;
 mod publish;
 mod rename;
@@ -23,10 +22,9 @@ enum Subcommand {
     Version(version::Version),
     Publish(publish::Publish),
     Exec(exec::Exec),
-    Create(create::Create),
+    New(new::New),
     Rename(rename::Rename),
     Init(init::Init),
-    New(new::New),
     Plan(plan::Plan),
 }
 
@@ -67,8 +65,6 @@ fn main() {
 
     let result = if let Subcommand::Init(ref init) = opt.subcommand {
         init.run()
-    } else if let Subcommand::New(ref new) = opt.subcommand {
-        new.run()
     } else {
         let mut cmd = MetadataCommand::new();
 
@@ -87,7 +83,7 @@ fn main() {
             Subcommand::Version(x) => x.run(metadata),
             Subcommand::Publish(x) => x.run(metadata),
             Subcommand::Exec(x) => x.run(metadata),
-            Subcommand::Create(x) => x.run(metadata),
+            Subcommand::New(x) => x.run(metadata),
             Subcommand::Rename(x) => x.run(metadata),
             Subcommand::Plan(x) => x.run(metadata),
             _ => unreachable!(),
