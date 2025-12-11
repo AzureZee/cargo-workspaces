@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.3
+
+### BREAKING
+* Update edition to `2024`
+* Remove MSRV version restrictions
+* Replacing the `create` subcommand with `new`
+
+### Enhancements
+* Allow `init` subcommand to create a new workspace repo if it doesn't exist
+* Improve `new` subcommand, The user experience is close to `cargo new`
+
+### Build
+* Fixed CI and release workflow
+
 ## 0.4.2
 
 ### Bug Fixes
