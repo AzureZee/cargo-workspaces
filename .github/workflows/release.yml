@@ -64,14 +64,16 @@ jobs:
         run: cargo build --release --manifest-path cargo-workspaces/Cargo.toml --bin cargo-workspaces
 
       - name: Prepare artifact
+        shell: bash
         id: artifact
         run: |
-          file="cargo-workspaces-${CARGO_BUILD_TARGET}-${TAG}"
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            cp cargo-workspaces/target/release/cargo-workspaces.exe "$file.exe"
+            file="cargo-workspaces-${CARGO_BUILD_TARGET}-${TAG}.exe"
+            cp "cargo-workspaces/target/${CARGO_BUILD_TARGET}/release/cargo-workspaces.exe" "$file"
             echo "file=$file.exe" >> $GITHUB_OUTPUT
           else
-            cp cargo-workspaces/target/release/cargo-workspaces "$file"
+            file="cargo-workspaces-${CARGO_BUILD_TARGET}-${TAG}"
+            cp "cargo-workspaces/target/${CARGO_BUILD_TARGET}/release/cargo-workspaces" "$file"
             tar -czf "$file.tar.gz" "$file"
             echo "file=$file.tar.gz" >> $GITHUB_OUTPUT
           fi
