@@ -3,7 +3,6 @@ mod create;
 mod exec;
 mod init;
 mod list;
-mod new;
 mod plan;
 mod publish;
 mod rename;
@@ -26,7 +25,6 @@ enum Subcommand {
     Create(create::Create),
     Rename(rename::Rename),
     Init(init::Init),
-    New(new::New),
     Plan(plan::Plan),
 }
 
@@ -67,8 +65,6 @@ fn main() {
 
     let result = if let Subcommand::Init(ref init) = opt.subcommand {
         init.run()
-    } else if let Subcommand::New(ref new) = opt.subcommand {
-        new.run()
     } else {
         let mut cmd = MetadataCommand::new();
 
