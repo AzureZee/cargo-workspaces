@@ -156,7 +156,7 @@ impl Create {
             },
             None => Select::with_theme(&theme)
                 .items(&editions)
-                .default(2)
+                .default(3)
                 .with_prompt("Rust edition")
                 .interact_on(&TERM_ERR)?,
         };
