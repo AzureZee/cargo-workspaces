@@ -20,7 +20,7 @@ jobs:
     permissions:
       contents: write
     outputs:
-      tag: ${{ steps.vars.outputs.tag }}   # 显式声明输出，供下游使用
+      tag: ${{ steps.vars.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
 
@@ -33,17 +33,19 @@ jobs:
             echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create a GitHub release
+      - name: Create GitHub Release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.vars.outputs.tag }}
         run: |
           gh release create "$tag" \
               --title="${GITHUB_REPOSITORY#*/} ${tag#v}" \
-              --generate-notes
+              --generate-notes \
+              --target ${{ github.sha }}
 
   upload_binaries:
     needs: release
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     strategy:
       fail-fast: false
       matrix:
@@ -64,6 +66,10 @@ jobs:
       - name: Install rust
         uses: dtolnay/rust-toolchain@1.88.0
 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cargo-workspaces
+
       - name: Build release binary
         run: cargo build --release --manifest-path cargo-workspaces/Cargo.toml --bin cargo-workspaces
 
@@ -80,13 +86,12 @@ jobs:
             tar -czf "$file.tar.gz" "$file"
             echo "file=$file.tar.gz" >> $GITHUB_OUTPUT
           fi
-      
 
       - name: Upload release artifact
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ env.TAG }}
         run: |
-          gh release upload "$tag" \
+          gh release upload "$TAG" \
               "${{ steps.artifact.outputs.file }}" \
               --clobber

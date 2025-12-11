@@ -39,11 +39,16 @@ jobs:
         uses: dtolnay/rust-toolchain@1.88.0
         with:
           targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cargo-workspaces
+
       - name: Install linker
         if: matrix.target == 'i686-unknown-linux-gnu'
         run: |
           sudo apt-get update
           sudo apt-get install gcc-multilib
+
       - name: Test
         run: cargo test --target ${{ matrix.target }} --manifest-path cargo-workspaces/Cargo.toml
   lint:
