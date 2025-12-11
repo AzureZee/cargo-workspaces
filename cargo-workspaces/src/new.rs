@@ -36,24 +36,24 @@ pub struct New {
     path: String,
 
     /// The crate edition
-    #[clap(long, arg_enum)]
+    #[clap(short, long, arg_enum)]
     edition: Option<Edition>,
 
     /// Whether this is a binary crate
-    #[clap(long, conflicts_with = "lib")]
+    #[clap(short, long, conflicts_with = "lib")]
     bin: bool,
 
     /// Whether this is a library crate
-    #[clap(long)]
+    #[clap(short, long)]
     lib: bool,
 
     /// The name of the crate
-    #[clap(long)]
+    #[clap(short, long)]
     name: Option<String>,
 
-    /// Create default members without interaction
+    /// Create members with interactive interface
     #[clap(short = 'y', long = "yes")]
-    all_default: bool,
+    enable_interaction: bool,
 }
 
 impl New {
@@ -92,7 +92,7 @@ impl New {
 
     fn try_run(&self, metadata: Metadata) -> Result {
         self.add_workspace_toml_entry(&metadata)?;
-        if self.all_default {
+        if !self.enable_interaction {
             self.create_default_new_workspace_member(&metadata)?;
         } else {
             self.create_new_workspace_member(&metadata)?;
@@ -123,7 +123,8 @@ impl New {
         let path = metadata.workspace_root.join(&self.path);
 
         let name = path.file_name().map(|s| s.to_owned()).unwrap_or_default();
-        let args = ["new", path.as_str()];
+        let template = if self.lib { "--lib" } else { "--bin" };
+        let args = ["new", template, path.as_str()];
 
         let (stdout, stderr) = cargo(&metadata.workspace_root, &args, &[])?;
 
