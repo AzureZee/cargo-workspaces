@@ -31,7 +31,7 @@ enum Edition {
 
 /// Create a new workspace crate
 #[derive(Debug, Parser)]
-pub struct Create {
+pub struct New {
     /// Path for the crate relative to the workspace manifest
     path: String,
 
@@ -56,7 +56,7 @@ pub struct Create {
     all_default: bool,
 }
 
-impl Create {
+impl New {
     pub fn run(&self, metadata: Metadata) -> Result {
         if canonicalize(&metadata.workspace_root)? != canonicalize(current_dir()?)? {
             return Err(Error::MustBeRunFromWorkspaceRoot);

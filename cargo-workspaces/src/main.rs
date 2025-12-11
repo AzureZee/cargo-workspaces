@@ -1,5 +1,5 @@
 mod changed;
-mod create;
+mod new;
 mod exec;
 mod init;
 mod list;
@@ -22,7 +22,7 @@ enum Subcommand {
     Version(version::Version),
     Publish(publish::Publish),
     Exec(exec::Exec),
-    Create(create::Create),
+    New(new::New),
     Rename(rename::Rename),
     Init(init::Init),
     Plan(plan::Plan),
@@ -83,7 +83,7 @@ fn main() {
             Subcommand::Version(x) => x.run(metadata),
             Subcommand::Publish(x) => x.run(metadata),
             Subcommand::Exec(x) => x.run(metadata),
-            Subcommand::Create(x) => x.run(metadata),
+            Subcommand::New(x) => x.run(metadata),
             Subcommand::Rename(x) => x.run(metadata),
             Subcommand::Plan(x) => x.run(metadata),
             _ => unreachable!(),
